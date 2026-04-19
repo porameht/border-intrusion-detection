@@ -1,0 +1,13 @@
+/target
+.venv/
+
+# Model weights
+models/
+*.onnx
+*.pt
+
+# Test data
+data/
+
+# Generated output
+output/

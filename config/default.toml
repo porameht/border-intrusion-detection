@@ -1,0 +1,19 @@
+[input]
+# sar_before = "data/sar_t1.tif"
+# sar_after = "data/sar_t2.tif"
+optical_before = "data/optical_t1.tif"
+optical_after = "data/optical_t2.tif"
+
+[change]
+sar_coherence_threshold = 0.3
+ndvi_threshold = 0.15
+
+[detect]
+model = "models/yolov8m.onnx"
+confidence = 0.5
+tile_size = 640
+overlap = 0.2
+
+[alert]
+format = "geojson"
+output = "output/alerts.geojson"

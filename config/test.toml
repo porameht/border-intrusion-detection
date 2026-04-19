@@ -1,0 +1,17 @@
+[input]
+optical_before = "data/sentinel2_before.tif"
+optical_after = "data/sentinel2_after.tif"
+
+[change]
+sar_coherence_threshold = 0.9
+ndvi_threshold = 0.1
+
+[detect]
+model = "models/yolov8n-obb.onnx"
+confidence = 0.5
+tile_size = 640
+overlap = 0.2
+
+[alert]
+format = "geojson"
+output = "output/alerts.geojson"
