@@ -55,50 +55,45 @@ Step 4: Alert → GPS coordinates + GeoJSON            ← works now
 
 ```mermaid
 flowchart TD
-    SAT["Satellite Data\nSentinel-1 SAR / Sentinel-2 Optical\n(GeoTIFF, free, every 5-12 days)"]
-
+    SAT[/Satellite Data\nSentinel-1 SAR + Sentinel-2 Optical/]
     SAT --> INGEST
-
-    INGEST["1. INGEST — ingest.rs\nRead GeoTIFF → extract bands → normalize\nTechnique: TIFF decode + band de-interleave\nCrate: tiff 0.9"]
-
+    INGEST[1. INGEST\ningest.rs]
     INGEST --> SAR
     INGEST --> OPT
-
-    SAR["2a. SAR Change — change.rs\nCoherence analysis\nFormula: |⟨s1·conj(s2)⟩| / √(⟨|s1|²⟩·⟨|s2|²⟩)\nCrate: rustfft + num-complex\nRef: Zebker & Villasenor 1992"]
-
-    OPT["2b. Optical Change — change.rs\nNDVI differencing\nFormula: (NIR - Red) / (NIR + Red)\nRef: Rouse et al. 1974 (NASA)"]
-
-    SAR --> MERGE
-    OPT --> MERGE
-
-    MERGE["Change Mask\n2-5% flagged, 95-98% skipped"]
-
-    MERGE --> TILE
-
-    TILE["3. TILE — tile.rs\nCut ONLY changed regions into 640×640 chips\nTechnique: SAHI (Slicing Aided Hyper Inference)\nCrate: ndarray 0.16\nRef: Akyon et al. 2022"]
-
+    SAR[2a. SAR Change\nchange.rs]
+    OPT[2b. Optical Change\nchange.rs]
+    SAR --> MASK
+    OPT --> MASK
+    MASK{{Change Mask\n2-5% flagged}}
+    MASK --> TILE
+    TILE[3. TILE\ntile.rs]
     TILE --> DETECT
-
-    DETECT["4. DETECT — detect.rs\nYOLOv8-OBB inference (DOTA pretrained, 15 classes)\n+ Probabilistic IoU NMS for oriented bounding boxes\nCrate: ort 2.0 (ONNX Runtime)\nRef: Jocher 2023, Probiou — Llerena 2021"]
-
+    DETECT[4. DETECT\ndetect.rs]
     DETECT --> FUSE
-
-    FUSE["5. FUSE — fuse.rs\nCombine SAR + optical detections\nFormula: P = 1 - ∏(1 - pᵢ·wᵢ)\nTechnique: Bayesian fusion + DBSCAN clustering\nRef: Ester et al. 1996"]
-
+    FUSE[5. FUSE\nfuse.rs]
     FUSE --> ALERT
-
-    ALERT["6. ALERT — alert.rs\nGeoJSON (RFC 7946) → open in QGIS\nPriority: Critical / High / Medium / Low\nCrate: geojson 0.24"]
+    ALERT[/6. ALERT\nalert.rs/]
 
     style SAT fill:#1a1a2e,color:#fff
     style INGEST fill:#16213e,color:#fff
     style SAR fill:#0f3460,color:#fff
     style OPT fill:#0f3460,color:#fff
-    style MERGE fill:#533483,color:#fff
+    style MASK fill:#533483,color:#fff
     style TILE fill:#e94560,color:#fff
     style DETECT fill:#b83b5e,color:#fff
     style FUSE fill:#6a2c70,color:#fff
     style ALERT fill:#1a1a2e,color:#fff
 ```
+
+| Step | File | Technique | Crate | Reference |
+|---|---|---|---|---|
+| 1. Ingest | `ingest.rs` | TIFF decode + band de-interleave | `tiff` 0.9 | |
+| 2a. SAR Change | `change.rs` | Coherence: `\|<s1*conj(s2)>\| / sqrt(<\|s1\|^2>*<\|s2\|^2>)` | `rustfft` + `num-complex` | Zebker & Villasenor 1992 |
+| 2b. Optical Change | `change.rs` | NDVI: `(NIR - Red) / (NIR + Red)` | `ndarray` | Rouse et al. 1974 (NASA) |
+| 3. Tile | `tile.rs` | SAHI — only tile changed regions (skip 95-98%) | `ndarray` 0.16 | Akyon et al. 2022 |
+| 4. Detect | `detect.rs` | YOLOv8-OBB (DOTA, 15 classes) + Probabilistic IoU NMS | `ort` 2.0 | Jocher 2023, Llerena 2021 |
+| 5. Fuse | `fuse.rs` | Bayesian fusion `P = 1 - prod(1 - pi*wi)` + DBSCAN | custom | Ester et al. 1996 |
+| 6. Alert | `alert.rs` | GeoJSON (RFC 7946) — Critical/High/Medium/Low | `geojson` 0.24 | |
 
 ### Why "change-first"?
 
